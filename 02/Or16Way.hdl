@@ -1,0 +1,24 @@
+CHIP Or16Way {
+    IN in[16];
+    OUT out;
+    PARTS:
+
+    Or(a = in[0], b = in[1], out = notzr0);
+    Or(a = notzr0, b = in[2], out = notzr1);
+    Or(a = notzr1, b = in[3], out = notzr2);
+    Or(a = notzr2, b = in[4], out = notzr3);
+
+    Or(a = notzr3, b = in[5], out = notzr4);
+    Or(a = notzr4, b = in[6], out = notzr5);
+    Or(a = notzr5, b = in[7], out = notzr6);
+    Or(a = notzr6, b = in[8], out = notzr7);
+
+    Or(a = notzr7, b = in[9], out = notzr8);
+    Or(a = notzr8, b = in[10], out = notzr9);
+    Or(a = notzr9, b = in[11], out = notzr10);
+    Or(a = notzr10, b = in[12], out = notzr11);
+
+    Or(a = notzr11, b = in[13], out = notzr12);
+    Or(a = notzr12, b = in[14], out = notzr13);
+    Or(a = notzr13, b = in[15], out = out);
+}
