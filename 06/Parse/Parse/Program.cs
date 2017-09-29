@@ -10,6 +10,22 @@ namespace Parse
     {
         static void Main(string[] args)
         {
+            if(args.Length != 1)
+            {
+                Console.WriteLine("Program.exe asmfile");
+                return;
+            }
+
+            string filename = args[0];
+            List<string> resultCode = new List<string>();
+            var parse = new Parse(filename);
+
+            while(parse.hasMoreLine())
+            {
+
+            }
         }
+
+
     }
 }

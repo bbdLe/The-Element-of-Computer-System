@@ -8,22 +8,20 @@ using System.Text.RegularExpressions;
 
 namespace Parse
 {
-    class parse
+    class Parse
     {
-        public parse(string filename)
+        public Parse(string filename)
         {
             var strs = File.ReadLines(filename);
 
             foreach(string str in strs)
             {
-                string handledStr = str.Trim().Replace("", string.Empty);
+                string handledStr = str.Trim().Replace(" ", string.Empty);
                 handledStr = Regex.Replace(handledStr, "//.*", string.Empty);
                 if (handledStr.Length == 0)   // empty str
                 {
                     continue;
                 }
-
-                _codeList.Add(handledStr);
 
                 if(handledStr.StartsWith("("))
                 {
@@ -31,56 +29,46 @@ namespace Parse
                     if(!_symbol_dict.ContainsKey(symbol))
                     {
                         _symbol_dict.Add(symbol, _currLine);
+                        continue;
                     }
                 }
-                else if(handledStr.StartsWith("@"))
-                {
-                    
-                }
+                _codeList.Add(handledStr);
+                ++_currLine;
             }
+            _currLine = 0;
         }
 
         public void advance()
         {
-           
+            if(hasMoreLine())
+                ++_currLine;
         }
 
         public bool hasMoreLine()
         {
-            string line;
-            while((line = freader.ReadLine()) != null)
-            {
-                if(line.Trim() != "")
-                {
-                    break;
-                }
-            }
-
-            code = line == null ? null : line.Trim();
-            return code != null ? true : false;
+            return _codeList.Count() != 0 && _currLine != _codeList.Count() - 1;
         }
 
         public CodeType commandType()
         {
-            if(code == null)
+            if(!hasMoreLine())
             {
                 Console.WriteLine("code is null");
                 Environment.Exit(-1);
             }
 
-            char c = code[0];
-            if(c == '@')
+            string code = _codeList[_currLine];
+
+            if(code.StartsWith("@"))
             {
                 return CodeType.A_COMMAND;
             }
-            else if(c != '(')
+            if(code.StartsWith("("))
             {
                 return CodeType.L_COMMAND;
             }
-            else
-            {
-                return CodeType.C_COMMAND;
-            }
+
+            return CodeType.C_COMMAND;
         }
 
         public string symbol()
@@ -88,19 +76,27 @@ namespace Parse
             if(commandType() == CodeType.C_COMMAND)
             {
                 Console.WriteLine("This is a C_COMMAND, you can't call symbol");
+                Environment.Exit(-1);
             }
 
-
-            if(commandType() == CodeType.A_COMMAND)
+            string code = _codeList[_currLine];
+            if (commandType() == CodeType.A_COMMAND)
             {
-                string str = code.Substring(1, code.Length - 1); // fixme
-                int num = Convert.ToInt32(str);
-                return Convert.ToString(num, 2);
+                var symbol = Regex.Match(code, @"@(.*)").Groups[1].Value;
+
+                if(_symbol_dict.ContainsKey(symbol))
+                {
+                    return _symbol_dict[symbol].ToString();
+                }
+                else
+                {
+                    return symbol;
+                }
             }
             else
             {
-                string str = code.Substring(1, code.Length - 1);
-                return str;
+                var symbol = Regex.Match(code, @"\((.*)\)").Groups[1].Value;
+                return _symbol_dict[symbol].ToString();
             }
         }
 
@@ -112,51 +108,44 @@ namespace Parse
                 Environment.Exit(-1);
             }
 
+            string code = _codeList[_currLine];
             int index = code.IndexOf('=');
             if(index == -1)
             {
-                return "";
+                return string.Empty;
             }
-            string str = code.Substring(0, index);
-            return str.Trim();
+            return Regex.Match(code, @"(.*)=").Groups[1].Value;
         }
 
         public string comp()
         {
-            int equal_index = code.IndexOf('=');
-            int sem_index = code.IndexOf(';');
-            string str = code;
-
-            if(equal_index != -1)
+            if(commandType() != CodeType.C_COMMAND)
             {
-                str = str.Remove(0, equal_index + 1);
+                Console.WriteLine("Call comp function : wrong type");
+                Environment.Exit(-1);
             }
+            var code = _codeList[_currLine];
+            code = Regex.Replace(code, "(.*)=", string.Empty);
+            code = Regex.Replace(code, ";(.*)", string.Empty);
 
-            if(sem_index != -1)
-            {
-                str = str.Remove(sem_index, str.Length - sem_index + 1);
-            }
-
-            return str.Trim();
+            return code;
         }
 
         public string jump()
         {
-            int equal_index = code.IndexOf('=');
-            int sem_index = code.IndexOf(';');
-            string str = code;
-
-            if(equal_index != -1)
+            if(commandType() != CodeType.C_COMMAND)
             {
-                str = str.Remove(0, equal_index + 1);
+                Console.WriteLine("Call jump function : wrong type");
+                Environment.Exit(-1);
+
+            }
+            var code = _codeList[_currLine];
+            if(!code.Contains(";"))
+            {
+                return string.Empty;
             }
 
-            if(sem_index != -1)
-            {
-                str = str.Remove(0, sem_index + 1);
-            }
-
-            return str;
+            return Regex.Match(code, @";(.*)").Groups[1].Value;
         }
 
         public enum CodeType
