@@ -9,8 +9,6 @@
 *.vcproj.*.user
 *.suo
 ._*
-[Dd]ebug
-[Rr]elease
 obj/
 [Bb]in
 !packages/build/
