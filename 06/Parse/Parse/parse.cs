@@ -46,7 +46,7 @@ namespace Parse
 
         public bool hasMoreLine()
         {
-            return _codeList.Count() != 0 && _currLine != _codeList.Count() - 1;
+            return _codeList.Count() != 0 && _currLine != _codeList.Count();
         }
 
         public CodeType commandType()
@@ -156,7 +156,7 @@ namespace Parse
         };
 
         private readonly List<string> _codeList = new List<string>();
-        private Dictionary<string, int> _symbol_dict = new Dictionary<string, int>
+        public Dictionary<string, int> _symbol_dict = new Dictionary<string, int>
         {
             {"SP" ,     0},
             {"LCL",     1},
@@ -182,6 +182,8 @@ namespace Parse
             {"SCREEN", 16384},
             {"KBD", 24576 }
         };
-        private int _currLine = 0; 
+        private int _currLine = 0;
+        public readonly int baseAddress = 16;
+        public int varCount = 0; 
     }
 }
