@@ -1,5 +1,4 @@
 !/DLLs/
-*.exe
 *.exp
 *.ilk
 *.lib
