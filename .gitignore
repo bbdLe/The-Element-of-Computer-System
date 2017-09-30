@@ -10,10 +10,8 @@
 *.suo
 ._*
 obj/
-[Bb]in
 !packages/build/
 Bak/
 packages/
-[Rr]elease/
 Key/
 !NuGet.exe
