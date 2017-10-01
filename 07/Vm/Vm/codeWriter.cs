@@ -20,12 +20,12 @@ namespace Vm
         {
             foreach (var str in codeList)
             {
-                Console.WriteLine(str);
                 swriter.WriteLine(str);
             }
             swriter.Flush();
             swriter.Close();
             fstream.Close();
+            Console.WriteLine("ok");
         }
 
         public void writeArithmetic()
@@ -73,6 +73,39 @@ namespace Vm
                     addCode("D=A");
                     DtoStack();
                 }
+                else if(segment == "local")
+                {
+                    pushSegmentHelper("@LCL");
+                }
+                else if(segment == "argument")
+                {
+                    pushSegmentHelper("@ARG");
+                }
+                else if(segment == "this")
+                {
+                    pushSegmentHelper("@THIS");
+                }
+                else if(segment == "that")
+                {
+                    pushSegmentHelper("@THAT");
+                }
+                else if(segment == "static")
+                {
+                    pushSegmentHelper("@16");
+                }
+                else if(segment == "temp")
+                {
+                    pushSegmentTemp();
+                }
+                else if(segment == "pointer")
+                {
+                    pushSegmentPointer();
+                }
+                else
+                {
+                    Console.WriteLine("No finish:push");
+                    Environment.Exit(-1);
+                }
             }
             else if(codeType == Parse.CodeType.C_POP)
             {
@@ -80,6 +113,40 @@ namespace Vm
                 {
                     popToA();
                 }
+                else if(segment == "local")
+                {
+                    popSegmentHelper("@LCL");
+                }
+                else if (segment == "argument")
+                {
+                    popSegmentHelper("@ARG");
+                }
+                else if (segment == "this")
+                {
+                    popSegmentHelper("@THIS");
+                }
+                else if (segment == "that")
+                {
+                    popSegmentHelper("@THAT");
+                }
+                else if (segment == "static")
+                {
+                    popSegmentHelper("@16");
+                }
+                else if (segment == "temp")
+                {
+                    popSegmentTemp();
+                }
+                else if (segment == "pointer")
+                {
+                    popSegmentPointer();
+                }
+                else
+                {
+                    Console.WriteLine("No finish:pop");
+                    Environment.Exit(-1);
+                }
+
             }
             else
             {
@@ -92,6 +159,72 @@ namespace Vm
         {
             popToD();
             addCode("D=!D");
+            DtoStack();
+        }
+
+        private void pushSegmentTemp()
+        {
+            addCode("@R" + (Convert.ToInt32(parse.arg2()) + 8).ToString());
+            addCode("D=M");
+            DtoStack();
+        }
+
+        private void popSegmentTemp()
+        {
+            popToD();
+            addCode("@R" + (Convert.ToInt32(parse.arg2()) + 8).ToString());
+            addCode("M=D");
+        }
+
+        private void pushSegmentPointer()
+        {
+            if(parse.arg2() == "0")
+            {
+                addCode("@THIS");
+            }
+            else
+            {
+                addCode("@THAT");
+            }
+            addCode("D=M");
+            DtoStack();
+        }
+
+        private void popSegmentPointer()
+        {
+            popToD();
+            if (parse.arg2() == "0")
+            {
+                addCode("@THIS");
+            }
+            else
+            {
+                addCode("@THAT");
+            }
+            addCode("M=D");
+        }
+
+        private void popSegmentHelper(string code)
+        {
+            addCode(code);
+            addCode("D=M");
+            addCode("@" + parse.arg2());
+            addCode("D=D+A");
+            addCode("@R5");
+            addCode("M=D");
+            popToD();
+            addCode("@R5");
+            addCode("A=M");
+            addCode("M=D");
+        }
+
+        private void pushSegmentHelper(string code)
+        {
+            addCode(code);
+            addCode("D=M");
+            addCode("@" + parse.arg2());
+            addCode("A=D+A");
+            addCode("D=M");
             DtoStack();
         }
 
