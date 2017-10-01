@@ -12,16 +12,23 @@ namespace Vm
         public codeWriter(string fileName, Parse pParse)
         {
             parse = pParse;
-            FileStream fstream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write);
-            StreamWriter swriter = new StreamWriter(fstream);
+            fstream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write | FileAccess.Read);
+            swriter = new StreamWriter(fstream);
         }
 
-        ~codeWriter()
+        public void close()
         {
+            foreach (var str in codeList)
+            {
+                Console.WriteLine(str);
+                swriter.WriteLine(str);
+            }
+            swriter.Flush();
+            swriter.Close();
             fstream.Close();
         }
 
-        public void writeArithmetic(string code)
+        public void writeArithmetic()
         {
             string func = parse.arg1();
 
@@ -37,97 +44,176 @@ namespace Vm
             {
                 negFunc();
             }
-            else if(func == "eq")
+            else if(func == "eq" || func == "gt" || func == "lt")
             {
-                eqFunc();
+                compareFunc(func);
+            }
+            else if(func == "and" || func == "or")
+            {
+                logicFunc(parse.arg1());
+            }
+            else if(func == "not")
+            {
+                notFunc();
+            }
+            else
+            {
+                Console.WriteLine("Wrong type");
+                Environment.Exit(-1);
             }
         }
 
-        private void eqFunc()
+        public void writePushPop(Parse.CodeType codeType, string segment, int segmentIndex)
         {
+            if(codeType == Parse.CodeType.C_PUSH)
+            {
+                if(segment == "constant")
+                {
+                    addCode("@" + segmentIndex.ToString());
+                    addCode("D=A");
+                    DtoStack();
+                }
+            }
+            else if(codeType == Parse.CodeType.C_POP)
+            {
+                if(segment == "constant")
+                {
+                    popToA();
+                }
+            }
+            else
+            {
+                Console.WriteLine("Wrong Type : writePushPop");
+                Environment.Exit(-1);
+            }
+        }
 
+        private void notFunc()
+        {
+            popToD();
+            addCode("D=!D");
+            DtoStack();
+        }
+
+        private void logicFunc(string code)
+        {
+            Dictionary<string, string> dict = new Dictionary<string, string>
+            {
+                {"and", "D=D&A"},
+                {"or",  "D=D|A"}
+            };
+
+            popToD();
+            popToA();
+            addCode(dict[code]);
+            DtoStack();
+        }
+
+        private void compareFunc(string code)
+        {
+            Dictionary<string, string> dict = new Dictionary<string, string>
+            {
+                {"eq", "D;JEQ"},
+                {"gt", "D;JGT"},
+                {"lt", "D;JLT"}
+            };
+
+            string indexStr = index.ToString();
+            string trueLabel = "TRUELABEL" + indexStr;
+            string falseLabel = "FALSELABEL" + indexStr;
+            string endLabel = "END" + indexStr;
+            ++index;
+            popToD();
+            popToA();
+            addCode("D=A-D");
+            addCode("@" + trueLabel);
+            addCode(dict[code]);
+            addCode("@" + falseLabel);
+            addCode("D;JMP");
+            addCode("(" + trueLabel + ")");
+            addCode("@1");
+            addCode("D=-A");
+            addCode("@SP");
+            addCode("A=M");
+            addCode("M=D");
+            addCode("@" + endLabel);
+            addCode("D;JMP");
+            addCode("(" + falseLabel + ")");
+            addCode("@SP");
+            addCode("A=M");
+            addCode("M=0");
+            addCode("(" + endLabel + ")");
+            incSP();
         }
 
         private void negFunc()
         {
-            string str = "";
-            str += "D=-D" + newLine;
             popToD();
-            swriter.Write(str);
+            addCode("D=-D");
             DtoStack();
-            incSP();
         }
 
         private void subFunc()
         {
-            string str = "";
-            str += "D=A-D" + newLine;
-            helpFunc(str);
+            helpFunc("D=A-D");
         }
 
         private void addFunc()
         {
-            string str = "";
-            str += "D=A+D" + newLine;
-            helpFunc(str);
+            helpFunc("D=A+D");
         }
 
         private void helpFunc(string str)
         {
             popToD();
             popToA();
-            swriter.Write(str);
+            addCode(str);
             DtoStack();
-            incSP();
         }
 
         private void DtoStack()
         {
-            string str = "";
-            str += "@SP" + newLine;
-            str += "A=M" + newLine;
-            str += "M=D" + newLine;
-            swriter.Write(str);
+            addCode("@SP");
+            addCode("A=M");
+            addCode("M=D");
+            incSP();
         }
 
         private void incSP()
         {
-            string str = "";
-            str += "@SP" + newLine;
-            str += "M=M+1" + newLine;
-            swriter.Write(str);
+            addCode("@SP");
+            addCode("M=M+1");
         }
 
         private void decSp()
         {
-            string str = "";
-            str += "@SP" + newLine;
-            str += "M=M-1" + newLine;
-            swriter.Write(str);
+            addCode("@SP");
+            addCode("M=M-1");
         }
 
         private void popToD()
         {
             popToA();
-            string str = ""; 
-            str += "D=A" + newLine;
-            swriter.Write(str);
+            addCode("D=A");
         }
 
         private void popToA()
         {
-            string str = "";
-            str += "@SP" + newLine;
-            str += "M=M-1" + newLine;
-            str += "@SP" + newLine;
-            str += "A=M" + newLine;
-            str += "A=M" + newLine;
-            swriter.Write(str);
+            decSp();
+            addCode("@SP");
+            addCode("A=M");
+            addCode("A=M");
         }
 
-        private FileStream fstream;
-        private readonly string newLine = "\r\n";
+        private void addCode(string code)
+        {
+            codeList.Add(code);
+        }
+
+        private List<string> codeList = new List<string>();
         private StreamWriter swriter;
+        private FileStream fstream;
         private readonly Parse parse;
+        private int index = 0;
     }
 }

@@ -111,7 +111,7 @@ namespace Vm
             {"add",         CodeType.C_ARITHMETIC },
             {"sub",         CodeType.C_ARITHMETIC },
             {"neg",         CodeType.C_ARITHMETIC },
-            {"eg",          CodeType.C_ARITHMETIC },
+            {"eq",          CodeType.C_ARITHMETIC },
             {"gt",          CodeType.C_ARITHMETIC },
             {"lt",          CodeType.C_ARITHMETIC },
             {"and",         CodeType.C_ARITHMETIC },
