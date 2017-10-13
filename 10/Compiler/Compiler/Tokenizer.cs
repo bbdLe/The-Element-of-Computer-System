@@ -14,7 +14,7 @@ namespace Compiler
         public bool hasMoreTokens()
         {
             curr_count += mcurr_token.Length;
-            while (skitComment() || skitWhiteSpace()) ;
+            while (skitComment() || skitWhiteSpace()) { }
 
             return curr_count >= strs.Length? false : true;
         }
@@ -25,7 +25,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "KeyWord";
+                mTokenType = "keyword";
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "Symbol";
+                mTokenType = "symbol";
                 return;
             }
 
@@ -41,7 +41,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "Int";
+                mTokenType = "integerConstant";
                 return;
             }
 
@@ -49,7 +49,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "String";
+                mTokenType = "string";
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "Identify";
+                mTokenType = "identifier";
                 return;
             }
 
@@ -91,7 +91,7 @@ namespace Compiler
             return mTokenType;
         }
 
-        public string curr_token()
+        public string currToken()
         {
             return mcurr_token;
         }
@@ -138,7 +138,7 @@ namespace Compiler
 
             if(match.Success == true && match.Index == curr_count)
             {
-                return strs.Substring(match.Index, match.Length);
+                return strs.Substring(match.Index, match.Length).TrimEnd();
             }
             else
             {
@@ -170,30 +170,17 @@ namespace Compiler
             return curr_count != temp_count ? true : false;
         }
 
-        private Regex singleLineCommentRegex = new Regex(@"//.*");
-        private Regex keyWordRegex = new Regex(@"class\s+|method\s+|int\s+|
-                                                 function\s+|boolean\s+|
-                                                 constructor\s+|char\s+|
-                                                 void\s+|var\s+|static\s+|
-                                                 field\s+|let\s+|do\s+|
-                                                 if\s+|else\s+|while\s+|
-                                                 return\s+|true\s+|false\s+|
-                                                 null\s+|this\s+");
+        private Regex singleLineCommentRegex = new Regex(@"//.*\n");
+        private Regex keyWordRegex = new Regex(@"class\s+|method\s+|int\s+|function\s+|boolean\s+|constructor\s*|char\s+|void\s+|var\s+|static\s+|field\s+|let\s+|do\s+|if\s*|else\s*|while\s*|return\s*|true\s*|false\s*|null\s*|this\s*");
         private Regex symbolRegex = new Regex(@"\{|\}|\(|\)|\[|\]|\.|,|;|\+|-|\*|/|&|\||<|>|=|~");
         private Regex identifyRegex = new Regex(@"[a-zA-Z_]\w*");
         private Regex stringRegex = new Regex(@""".+""");
-        private Regex multiLineCommentRegex = new Regex(@"/\*.*\*/");
+        private Regex multiLineCommentRegex = new Regex(@"/\*[\s\S]*?\*/");
         private Regex intRegex = new Regex(@"\d*");
         private Regex whiteSpaceRegex = new Regex(@"\s+");
 
         private string strs;
         private int curr_count = 0;
-
-        //private string mSymbol;
-        //private string midentifier;
-        //private string mInt;
-        //private string mString;
-        //private string mKeyword;
         public string mcurr_token = string.Empty;
         private string mTokenType;
     }
