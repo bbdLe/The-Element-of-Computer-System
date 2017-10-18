@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using System.IO;
 using System;
+using System.Collections.Generic;
 
 namespace Compiler
 {
@@ -19,7 +20,35 @@ namespace Compiler
             return curr_count >= strs.Length? false : true;
         }
 
+        public void backward()
+        {
+            if(curr_count > 0)
+            {
+                --tokenListIndex;
+            }
+            else
+            {
+                Console.WriteLine("curr_count < 0");
+                Environment.Exit(-1);
+            }
+        }
+
         public void advance()
+        {
+            if(tokenList.Count != 0 && tokenListIndex != tokenList.Count - 1)
+            {
+                ++tokenListIndex;
+            }
+            else
+            {
+                _advance();
+                tokenList.Add(mcurr_token);
+                tokenTypeList.Add(mTokenType);
+                ++tokenListIndex;
+            }
+        }
+
+        private void _advance()
         {
             string str = keyWord();
             if(str != string.Empty)
@@ -68,32 +97,32 @@ namespace Compiler
 
         public string identifier()
         {
-            return mcurr_token;
+            return currToken();
         }
 
         public string symbol()
         {
-            return mcurr_token;
+            return currToken();
         }
 
         public string stringVal()
         {
-            return mcurr_token;
+            return currToken();
         }
 
         public string intVal()
         {
-            return mcurr_token;
+            return currToken();
         }
 
         public string tokenType()
         {
-            return mTokenType;
+            return tokenTypeList[tokenListIndex];
         }
 
         public string currToken()
         {
-            return mcurr_token;
+            return tokenList[tokenListIndex];
         }
 
         private string singleLineComment()
@@ -180,6 +209,9 @@ namespace Compiler
         private Regex whiteSpaceRegex = new Regex(@"\s+");
 
         private string strs;
+        private List<string> tokenList = new List<string>();
+        private List<string> tokenTypeList = new List<string>();
+        private int tokenListIndex = -1;
         private int curr_count = 0;
         public string mcurr_token = string.Empty;
         private string mTokenType;
