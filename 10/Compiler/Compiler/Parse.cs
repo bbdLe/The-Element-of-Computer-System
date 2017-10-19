@@ -82,9 +82,37 @@ namespace Compiler
             }
             parseIdentifiter();     // function name
             parseSymbol();          // (
-            //parseParameterList()
+            parseParameterList();
             parseSymbol();          //  )
+            parseSubroutineBody();
             writeIndent(@"</subroutineDec>");
+        }
+
+        public void parseSubroutineBody()
+        {
+            parseSymbol();  // {
+            while(mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+                string tokenType = mTokenizer.tokenType();
+                string token = mTokenizer.currToken();
+                mTokenizer.backward();
+                if(tokenType == "symbol")       // {
+                {
+                    break;
+                }
+                if(tokenType == "keyword" && token == "var")
+                {
+                    parseVarDec();
+                }
+                else
+                {
+                    parseStatements();
+                    break;
+                }
+
+            }
+            parseSymbol();  // }
         }
 
         public void parseParameterList()
@@ -92,22 +120,105 @@ namespace Compiler
             if(mTokenizer.hasMoreTokens())
             {
                 mTokenizer.advance();
+                string token = mTokenizer.currToken();
+                string tokenType = mTokenizer.tokenType();
                 mTokenizer.backward();
-                string type = mTokenizer.tokenType();
-                if(type == "symbol")
+                if (tokenType == "symbol")
                 {
-                    string token = mTokenizer.currToken();
                     if(token == ")")
                     {
                         return;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Wrong type");
+                        Environment.Exit(-1);
                     }
                 }
             }
 
             while(mTokenizer.hasMoreTokens())
             {
-                
+                mTokenizer.advance();                       // type
+                string tokenType = mTokenizer.tokenType();
+                mTokenizer.backward();
+                if (tokenType == "keyword")
+                {
+                    parseKeyWord();
+                }
+                else if(tokenType == "identifier")
+                {
+                    parseIdentifiter();
+                }
+                else
+                {
+                    Console.WriteLine("Wrong type");
+                    Environment.Exit(-1);
+                }
+                parseIdentifiter();             // name
+                mTokenizer.advance();
+                tokenType = mTokenizer.tokenType();
+                string token = mTokenizer.currToken();      // , or )
+                mTokenizer.backward();
+                if(tokenType != "symbol")
+                {
+                    Console.WriteLine("need Symbol");
+                }
+                else
+                {
+                    if (token == ")")   // )
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        parseSymbol();  // ,
+                    }
+                }
             }
+        }
+
+        public void parseVarDec()
+        {
+            writeIndent(@"<varDec>");
+            parseSymbol();      // var
+            mTokenizer.advance();
+            string token = mTokenizer.currToken();
+            string tokenType = mTokenizer.tokenType();
+            mTokenizer.backward();
+            if(tokenType == "keyword")
+            {
+                parseKeyWord();
+            }
+            else if(tokenType == "identifier")
+            {
+                parseIdentifiter();
+            }
+            else
+            {
+                wrongMessage("Wrong type");
+            }
+            while(mTokenizer.hasMoreTokens())
+            {
+                parseIdentifiter();
+
+                if(!mTokenizer.hasMoreTokens())
+                {
+                    wrongMessage("Need more tokens");
+                }
+                parseSymbol();      // , or ;
+                if (mTokenizer.currToken() == ";")
+                    break;
+            }
+            writeIndent(@"</varDec>");
+        }
+
+        public void parseStatements()
+        {
+            writeIndent(@"<statements>");
+            
+
+            writeIndent(@"</statements>");
         }
 
         public void parseClassVarDec()
@@ -116,16 +227,13 @@ namespace Compiler
             ++indentLevel;
             parseKeyWord();     // field;
             string tokenType = "";
-            if (mTokenizer.hasMoreTokens())     // type
-            {
-                tokenType = mTokenizer.tokenType();
-                mTokenizer.backward();
-            }
-            else
+            if (!mTokenizer.hasMoreTokens())     // type
             {
                 Console.Write("Wrong Result");
                 Environment.Exit(-1);
             }
+            tokenType = mTokenizer.tokenType();
+            mTokenizer.backward();
 
             if (tokenType == "keyword")
             {
@@ -232,6 +340,12 @@ namespace Compiler
         private void writeIdentifiter()
         {
             writeLabel("identifiter");
+        }
+
+        private void wrongMessage(string msg)
+        {
+            Console.WriteLine(msg);
+            Environment.Exit(-1);
         }
 
         private void writeLabel(string label)
