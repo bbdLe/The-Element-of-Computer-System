@@ -19,7 +19,8 @@ namespace Compiler
                 Environment.Exit(-1);
             }
             Tokenizer tokenizer = new Tokenizer(args[0]);
-            Parse parse = new Parse(tokenizer, args[0].Replace(".jack", "T.xml"));
+            Parse parse = new Parse(tokenizer, args[0].Replace(".jack", ".xml"));
+            parse.parseClass();
             parse.close();
         }
     }

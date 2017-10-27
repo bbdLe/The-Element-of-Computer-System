@@ -14,10 +14,17 @@ namespace Compiler
 
         public bool hasMoreTokens()
         {
-            curr_count += mcurr_token.Length;
-            while (skitComment() || skitWhiteSpace()) { }
-
-            return curr_count >= strs.Length? false : true;
+            if (tokenList.Count - 1 == tokenListIndex && lastTimeIndex != tokenListIndex)
+            {
+                curr_count += mcurr_token.Length;
+                while (skitComment() || skitWhiteSpace()) { }
+                lastTimeIndex = tokenListIndex;
+                return curr_count >= strs.Length ? false : true;
+            }
+            else
+            {
+                return true;
+            }
         }
 
         public void backward()
@@ -78,7 +85,7 @@ namespace Compiler
             if(str != string.Empty)
             {
                 mcurr_token = str;
-                mTokenType = "string";
+                mTokenType = "stringConstant";
                 return;
             }
 
@@ -209,6 +216,7 @@ namespace Compiler
         private Regex whiteSpaceRegex = new Regex(@"\s+");
 
         private string strs;
+        private int lastTimeIndex = -2;
         private List<string> tokenList = new List<string>();
         private List<string> tokenTypeList = new List<string>();
         private int tokenListIndex = -1;

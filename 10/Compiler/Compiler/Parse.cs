@@ -21,41 +21,37 @@ namespace Compiler
             swriter.Close();
         }
 
-        //public void start()
-        //{
-        //    ++indentLevel;
-        //    writeIndent("<tokens>");
-        //    tempParse();
-        //    writeIndent("</tokens>");
-        //    --indentLevel;
-        //}
-
         public void parseClass()
         {
             writeIndent(@"<class>");
-            ++indentLevel;
             parseKeyWord();     // class
             parseIdentifiter(); // SquareGame
             parseSymbol();      // {
             while(mTokenizer.hasMoreTokens())
             {
-                if(mTokenizer.tokenType() != "keyword")
+                mTokenizer.advance();
+                if(mTokenizer.tokenType() != "keyword" && mTokenizer.tokenType() != "symbol")
                 {
-                    Console.WriteLine("Need a keyword : field or other, but get ", mTokenizer.tokenType());
+                    Console.WriteLine("Need a keyword : field or other, but get " +  mTokenizer.tokenType() + mTokenizer.currToken());
                     Environment.Exit(-1);
                 }
                 string keyword = mTokenizer.currToken();
-                if(keyword == "field")
+                mTokenizer.backward();
+                if(fieldKeyword.Contains(keyword))
                 {
                     parseClassVarDec();
                 }
-                else
+                else if(functionKeyword.Contains(keyword))
                 {
                     parseSubroutineDec();
                 }
+                else
+                {
+                    parseSymbol();
+                    break;
+                }
             }
-            --indentLevel;
-            writeIndent(@"<\class>");
+            writeIndent(@"</class>");
         }
 
         public void parseSubroutineDec()
@@ -64,10 +60,11 @@ namespace Compiler
             parseKeyWord();     // method or consturctor
             if(!mTokenizer.hasMoreTokens())
             {
-                Console.WriteLine("Need more tokens");
+                wrongMessage("Need more tokens");
             }
             mTokenizer.advance();
             string tokenType = mTokenizer.tokenType();  // return type
+            mTokenizer.backward();
             if(tokenType == "keyword")
             {
                 parseKeyWord();
@@ -78,7 +75,7 @@ namespace Compiler
             }
             else
             {
-                Console.WriteLine("Need keyword or identifier, but get " + tokenType);
+                wrongMessage("Need keyword or identifier, but get " + tokenType);
             }
             parseIdentifiter();     // function name
             parseSymbol();          // (
@@ -90,6 +87,7 @@ namespace Compiler
 
         public void parseSubroutineBody()
         {
+            writeIndent("<subroutineBody>");
             parseSymbol();  // {
             while(mTokenizer.hasMoreTokens())
             {
@@ -97,7 +95,7 @@ namespace Compiler
                 string tokenType = mTokenizer.tokenType();
                 string token = mTokenizer.currToken();
                 mTokenizer.backward();
-                if(tokenType == "symbol")       // {
+                if(tokenType == "symbol")       // }
                 {
                     break;
                 }
@@ -113,10 +111,13 @@ namespace Compiler
 
             }
             parseSymbol();  // }
+            writeIndent("</subroutineBody>");
+
         }
 
         public void parseParameterList()
         {
+            writeIndent("<parameterList>");
             if(mTokenizer.hasMoreTokens())
             {
                 mTokenizer.advance();
@@ -127,6 +128,7 @@ namespace Compiler
                 {
                     if(token == ")")
                     {
+                        writeIndent("</parameterList>");
                         return;
                     }
                     else
@@ -152,22 +154,25 @@ namespace Compiler
                 }
                 else
                 {
-                    Console.WriteLine("Wrong type");
-                    Environment.Exit(-1);
+                    wrongMessage("Wrong type");
                 }
                 parseIdentifiter();             // name
-                mTokenizer.advance();
+                if (mTokenizer.hasMoreTokens())
+                    mTokenizer.advance();
+                else
+                    wrongMessage("Need more token");
                 tokenType = mTokenizer.tokenType();
                 string token = mTokenizer.currToken();      // , or )
                 mTokenizer.backward();
                 if(tokenType != "symbol")
                 {
-                    Console.WriteLine("need Symbol");
+                    wrongMessage("need Symbol" + tokenType + token);
                 }
                 else
                 {
                     if (token == ")")   // )
                     {
+                        writeIndent("</parameterList>");
                         return;
                     }
                     else
@@ -176,13 +181,17 @@ namespace Compiler
                     }
                 }
             }
+            writeIndent("</parameterList>");
         }
 
         public void parseVarDec()
         {
             writeIndent(@"<varDec>");
-            parseSymbol();      // var
-            mTokenizer.advance();
+            parseKeyWord();      // var
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
             string token = mTokenizer.currToken();
             string tokenType = mTokenizer.tokenType();
             mTokenizer.backward();
@@ -216,9 +225,48 @@ namespace Compiler
         public void parseStatements()
         {
             writeIndent(@"<statements>");
-            
-
+            while (parseStatement()) ;
             writeIndent(@"</statements>");
+        }
+
+        public bool parseStatement()
+        {
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            string tokenType = mTokenizer.tokenType();
+            string token = mTokenizer.currToken();
+            mTokenizer.backward();
+            if (tokenType != "keyword")
+            {
+                return false;
+            }
+            if (token == "let")
+            {
+                parseLetStatement();
+            }
+            else if (token == "if")
+            {
+                parseIfStatement();
+            }
+            else if (token == "while")
+            {
+                parseWhileStatement();
+            }
+            else if (token == "do")
+            {
+                parseDoStatement();
+            }
+            else if (token == "return")
+            {
+                parseReturn();
+            }
+            else
+            {
+                return false;
+            }
+            return true;
         }
 
         public void parseClassVarDec()
@@ -229,9 +277,9 @@ namespace Compiler
             string tokenType = "";
             if (!mTokenizer.hasMoreTokens())     // type
             {
-                Console.Write("Wrong Result");
-                Environment.Exit(-1);
+                wrongMessage("Wrong Result");
             }
+            mTokenizer.advance();
             tokenType = mTokenizer.tokenType();
             mTokenizer.backward();
 
@@ -245,34 +293,269 @@ namespace Compiler
             }
             else
             {
-                Console.WriteLine("Wrong type");
-                Environment.Exit(-1);
+                wrongMessage("Wrong type");
             }
 
             parseIdentifiter(); // name
             parseSymbol();      // symbol
+            while (mTokenizer.currToken() == ",")
+            {
+                parseIdentifiter();
+                parseSymbol();
+            }
             --indentLevel;
             writeIndent(@"</classVarDec>");
         }
 
-        public void parseKeyWord()
+        public void parseExpression()
         {
+            writeIndent("<expression>");
+            parseTerm();
+            if ( mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            string tokenType = mTokenizer.tokenType();
+            string token = mTokenizer.currToken();
+            mTokenizer.backward();
+            while (tokenType == "symbol" && opList.Contains(token))
+            {
+                parseSymbol();
+                parseTerm();
+                if (mTokenizer.hasMoreTokens())
+                {
+                    mTokenizer.advance();
+                }
+                tokenType = mTokenizer.tokenType();
+                token = mTokenizer.currToken();
+                mTokenizer.backward();
+            }
+            writeIndent("</expression>");
+        }
+
+        public void parseLetStatement()
+        {
+            writeIndent("<letStatement>");
+            parseKeyWord();         // let
+            parseIdentifiter();     // varName
             if (mTokenizer.hasMoreTokens())
             {
                 mTokenizer.advance();
-                if (mTokenizer.tokenType() == "identifier")     // class
-                {
-                    writeIdentifiter();
-                }
-                else
-                {
-                    Console.Write("Need a identifier, but get " + mTokenizer.tokenType());
-                    Environment.Exit(-1);
-                }
+            }
+            string token = mTokenizer.currToken();
+            string tokenType = mTokenizer.tokenType();
+            mTokenizer.backward();
+            if (token == "[")
+            {
+                parseSymbol();      // [
+                parseExpression();  // expression
+                parseSymbol();      // ]
+            }
+            parseSymbol();      // =
+            parseExpression();  // expression
+            parseSymbol();      // ;
+            writeIndent("</letStatement>");
+        }
+
+        public void parseIfStatement()
+        {
+            writeIndent("<ifStatement>");
+            parseKeyWord();     // if
+            parseSymbol();      // (
+            parseExpression();  // expression
+            parseSymbol();      // )
+            parseSymbol();      // {
+            parseStatements();  // statements
+            parseSymbol();      // }
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            string token = mTokenizer.currToken();
+            string tokenType = mTokenizer.tokenType();
+            mTokenizer.backward();
+            if (tokenType == "keyword" && token == "else")
+            {
+                parseKeyWord();     // else
+                parseSymbol();      // {
+                parseStatements();
+                parseSymbol();      // }
+            }
+            writeIndent("</ifStatement>");
+        }
+
+        public void parseWhileStatement()
+        {
+            writeIndent("<whileStatement>");
+            parseKeyWord(); // while
+            parseSymbol();  // (
+            parseExpression(); // expression
+            parseSymbol();  // )
+            parseSymbol();  // {
+            parseStatements();  // statements
+            parseSymbol();  // }
+            writeIndent("</whileStatement>");
+        }
+
+        public void parseDoStatement()
+        {
+            writeIndent("<doStatement>");
+            parseKeyWord();     // do
+            parseSubroutineCall();
+            parseSymbol();      // ;
+            writeIndent("</doStatement>");
+        }
+
+        public void parseReturn()
+        {
+            writeIndent("<returnStatement>");
+            parseKeyWord();     // return
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            else
+            {
+                wrongMessage("Need More token");
+            }
+            string token = mTokenizer.currToken();
+            mTokenizer.backward();
+            if (token != ";")
+            {
+                parseExpression();  // expression
+            }
+            parseSymbol();      // ;
+            writeIndent("</returnStatement>");
+        }
+
+        public void parseSubroutineCall()
+        {
+            parseIdentifiter(); // var or className
+            parseSymbol();      // ( or .
+            string token = mTokenizer.currToken();
+            if ( token == "(" )
+            {
+                parseExpressionList();
+                parseSymbol();  // )
+            }
+            else if ( token == "." )
+            {
+                parseIdentifiter(); // class subprocess
+                parseSymbol();      // (
+                parseExpressionList();  // expressionList
+                parseSymbol();      // )
             }
         }
 
-        public void parseIdentifiter()
+        public void parseExpressionList()
+        {
+            writeIndent("<expressionList>");
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            string token = mTokenizer.currToken();
+            mTokenizer.backward();
+            if (token == ")")
+            {
+                writeIndent("</expressionList>");
+                return;
+            }
+            parseExpression();
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+                token = mTokenizer.currToken();
+                string tokenType = mTokenizer.tokenType();
+                mTokenizer.backward();
+                while (tokenType == "symbol" && token == ",")
+                {
+                    parseSymbol();
+                    parseExpression();
+                    mTokenizer.advance();
+                    token = mTokenizer.currToken();
+                    tokenType = mTokenizer.tokenType();
+                    mTokenizer.backward();
+                }
+            }
+            writeIndent("</expressionList>");
+        }
+
+        public void parseTerm()
+        {
+            writeIndent("<term>");
+            if ( mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+            }
+            string tokenType = mTokenizer.tokenType();
+            string token = mTokenizer.currToken();
+            if (tokenType == "integerConstant")
+            {
+                writeIndent("<integerConstant>" + token + "</integerConstant>");
+            }
+            else if (tokenType == "stringConstant")
+            {
+                writeIndent("<stringConstant>" + token.Trim('\"') + "</stringConstant>");
+            }
+            else if (tokenType == "keyword" && (token == "true" || token == "false" || token == "null" || token == "this"))
+            {
+                writeKeyWord();
+            }
+            else if (tokenType == "identifier")
+            {
+                string identify = token;
+                if (mTokenizer.hasMoreTokens())
+                {
+                    mTokenizer.advance();
+                }
+                token = mTokenizer.currToken();
+                tokenType = mTokenizer.tokenType();
+                mTokenizer.backward();
+                if (tokenType == "symbol" && (token == "[" || token == "(" || token == "."))
+                {
+                    if (token == "[")
+                    {
+                        writeIndent("<identifier>" + identify + "</identifier>");
+                        parseSymbol();          // [
+                        parseExpression();
+                        parseSymbol();
+                    }
+                    else
+                    {
+
+                        mTokenizer.backward();
+                        parseSubroutineCall();
+                    }
+                    Console.WriteLine("you");
+
+                }
+                else
+                {
+                    writeIndent("<identifier>" + identify + "</identifier>");
+                }
+            }
+            else if (tokenType == "symbol")
+            {
+                token = mTokenizer.currToken();
+                if(token == "(")
+                {
+                    mTokenizer.backward();
+                    parseSymbol();
+                    parseExpression();
+                    parseSymbol();
+                }
+                if(token == "~" || token == "-")
+                {
+                    mTokenizer.backward();
+                    parseSymbol();
+                    parseTerm();
+                }
+            }
+            writeIndent("</term>");
+        }
+
+        public void parseKeyWord()
         {
             if (mTokenizer.hasMoreTokens())
             {
@@ -283,7 +566,24 @@ namespace Compiler
                 }
                 else
                 {
-                    Console.Write("Need a keyword, but get " + mTokenizer.tokenType());
+                    Console.Write("Need a keyword, but get " + mTokenizer.tokenType() + mTokenizer.currToken());
+                    Environment.Exit(-1);
+                }
+            }
+        }
+
+        public void parseIdentifiter()
+        {
+            if (mTokenizer.hasMoreTokens())
+            {
+                mTokenizer.advance();
+                if (mTokenizer.tokenType() == "identifier")     // class
+                {
+                    writeIdentifiter();
+                }
+                else
+                {
+                    Console.Write("Need a Identifiter, but get " + mTokenizer.tokenType() + mTokenizer.currToken());
                     Environment.Exit(-1);
                 }
             }
@@ -306,18 +606,6 @@ namespace Compiler
             }
         }
 
-        public void tempParse()
-        {
-            ++indentLevel;
-            while(mTokenizer.hasMoreTokens())
-            {
-                mTokenizer.advance();
-                var tokenType = mTokenizer.tokenType();
-                writeIndent("<" + tokenType + ">" + WebUtility.HtmlEncode(mTokenizer.currToken()) + "</" + tokenType + ">");
-            }
-            --indentLevel;
-        }
-
         private void writeIndent(string str)
         {
             for(int i = 0; i < indentLevel; ++i)
@@ -325,6 +613,7 @@ namespace Compiler
                 swriter.Write("\t");
             }
             swriter.WriteLine(str);
+            Console.WriteLine(str);
         }
 
         private void writeKeyWord()
@@ -339,7 +628,7 @@ namespace Compiler
 
         private void writeIdentifiter()
         {
-            writeLabel("identifiter");
+            writeLabel("identifier");
         }
 
         private void wrongMessage(string msg)
@@ -355,6 +644,36 @@ namespace Compiler
 
         private Tokenizer mTokenizer;
         private StreamWriter swriter;
-        int indentLevel = 0;
+        private List<string> opList = new List<string>
+        {
+            "+",
+            "-",
+            "*",
+            "/",
+            "&",
+            "|",
+            "<",
+            ">",
+            "="
+        };
+        private int indentLevel = 0;
+        private List<string> functionKeyword = new List<string>
+        {
+            "method",
+            "constructor",
+            "function"
+        };
+        private List<string> fieldKeyword = new List<string>
+        {
+            "static",
+            "field"
+        };
+        private List<string> keywordList = new List<string>
+        {
+            "true",
+            "false",
+            "null",
+            "this"
+        };
     }
 }
